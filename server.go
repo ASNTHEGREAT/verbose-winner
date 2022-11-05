@@ -26,7 +26,7 @@ func main() {
 	r.GET("/login", handler.loginUsersHandler)
 	r.POST("/register", handler.createUserHandler)
 	r.DELETE("/del/:id", handler.deleteUserHandler)
-	r.GET("/:id/getitems", //TODO)
+	r.GET("/:id/getitems", /*TODO*/ )
 
 	r.Run()
 }
