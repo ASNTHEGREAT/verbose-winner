@@ -26,7 +26,7 @@ func main() {
 	r.GET("/login", handler.loginUsersHandler)
 	r.POST("/register", handler.createUserHandler)
 	r.DELETE("/del/:id", handler.deleteUserHandler)
-	r.GET("/:id/getitems", handler.listUsersItems)
+	r.GET("/:id/getitems", //TODO)
 
 	r.Run()
 }
@@ -57,20 +57,7 @@ type Item struct {
 	Price float32 `json:"price"`
 }
 
-func (h *Handler) listUsersItems(c *gin.Context) {
-	id := c.Param("id")
-	var items []Item
 
-	if res := h.db.First(&users.ID); id.Error != nil {
-		c.JSON()
-	}
-
-	if result := h.db.Find(&items); result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": result.Error.Error(),
-		})
-	}
-}
 
 func (h *Handler) listUsersHandler(c *gin.Context) {
 	var users []User
