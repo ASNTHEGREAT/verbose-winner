@@ -26,7 +26,7 @@ func main() {
 	r.GET("/login", handler.loginUsersHandler)
 	r.POST("/register", handler.createUserHandler)
 	r.DELETE("/del/:id", handler.deleteUserHandler)
-	r.GET("/:id/getitems", /*TODO*/ )
+	r.GET("/:id/getitems", /*TODO*/ handler.listUserItems )
 
 	r.Run()
 }
@@ -57,6 +57,10 @@ type Item struct {
 	Price float32 `json:"price"`
 }
 
+func(h *Handler) listUserItems(c *gin.Context) {
+	//TODO
+	return 
+}
 
 
 func (h *Handler) listUsersHandler(c *gin.Context) {
