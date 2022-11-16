@@ -17,6 +17,7 @@ func main() {
 	}
 
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Item{})
 
 	handler := newHandler(db)
 
@@ -27,6 +28,7 @@ func main() {
 	r.POST("/register", handler.createUserHandler)
 	r.DELETE("/del/:id", handler.deleteUserHandler)
 	r.GET("/:id/getitems", /*TODO*/ handler.listUserItems )
+	r.POST("/:id/postitems", /*TODO*/ handler.createUserItems )
 
 	r.Run()
 }
@@ -45,7 +47,6 @@ type User struct {
 	Email        *string		 `json:"email"`
 	Password 	 string			 `json:"password"`
 	Age          uint8 			 `json:"age"`
-	ItemID		 int
 	Item 		 Item
 	CreatedAt    time.Time 		 
 	UpdatedAt    time.Time 	 	 
@@ -57,8 +58,23 @@ type Item struct {
 	Price float32 `json:"price"`
 }
 
-func(h *Handler) listUserItems(c *gin.Context) {
-	//TODO
+func (h *Handler) listUserItems(tx *gin.Context) {
+	id := tx.Param("id")
+	var items []Item
+
+	if err := tx.ShouldBindJSON(&items); err != nil {
+		tx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if iD := h.db.First(id); iD.Error != nil {
+		
+	}
+	
+
+	tx.JSON(http.StatusOK, &items)
 	return 
 }
 
