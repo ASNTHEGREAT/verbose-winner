@@ -24,11 +24,11 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/allUsers", handler.listUsersHandler)
+	r.GET("/user/:id",/*TODO*/ handler.listUserByID)
+	r.GET("/updateitems",/*TODO*/ handler.updateUserItems)
 	r.GET("/login", handler.loginUsersHandler)
 	r.POST("/register", handler.createUserHandler)
 	r.DELETE("/del/:id", handler.deleteUserHandler)
-	r.GET("/:id/getitems", /*TODO*/ handler.listUserItems )
-	r.POST("/:id/postitems", /*TODO*/ handler.createUserItems )
 
 	r.Run()
 }
@@ -42,14 +42,14 @@ func newHandler(db *gorm.DB) *Handler {
 }
 
 type User struct {
-	ID     		 uint            `json:"id"`
-	Name         string			 `json:"name"`
-	Email        *string		 `json:"email"`
-	Password 	 string			 `json:"password"`
-	Age          uint8 			 `json:"age"`
-	Item 		 Item
-	CreatedAt    time.Time 		 
-	UpdatedAt    time.Time 	 	 
+	ID        uint    `json:"id"`
+	Name      string  `json:"name"`
+	Email     *string `json:"email"`
+	Password  string  `json:"password"`
+	Age       uint8   `json:"age"`
+	Item      Item
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Item struct {
@@ -58,26 +58,57 @@ type Item struct {
 	Price float32 `json:"price"`
 }
 
-func (h *Handler) listUserItems(tx *gin.Context) {
-	id := tx.Param("id")
+/*func (h *Handler) listUserItems(tx *gin.Context) {
 	var items []Item
 
-	if err := tx.ShouldBindJSON(&items); err != nil {
+	if result := h.db.Find(&items); result.Error != nil {
+		tx.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	tx.JSON(http.StatusOK, &items)
+}
+
+func (h *Handler) createUserItems(tx *gin.Context) {
+	var item Item
+
+	if err := tx.ShouldBindJSON(&item); err != nil {
 		tx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
 
-	if iD := h.db.First(id); iD.Error != nil {
-		
+	if result := h.db.Create(&item); result.Error != nil {
+		tx.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
 	}
-	
-
-	tx.JSON(http.StatusOK, &items)
-	return 
+	tx.JSON(http.StatusCreated, gin.H{
+		"Message": "Successful Added Item",
+		"Status":  "201",
+	})
+	tx.JSON(http.StatusCreated, &item)
 }
 
+func (h *Handler) deleteUserItems(c *gin.Context) {
+	id := c.Param("id")
+
+	if result := h.db.Delete(&Item{}, id); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"Message": "Successfully Deleted User",
+		"Status":  "200",
+	})
+}*/
 
 func (h *Handler) listUsersHandler(c *gin.Context) {
 	var users []User
@@ -109,8 +140,8 @@ func (h *Handler) loginUsersHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
-		"Message" : "User Existence Confirmed",
-		"Status" : "200",
+		"Message": "User Existence Confirmed",
+		"Status":  "200",
 	})
 	c.JSON(http.StatusCreated, &user)
 }
@@ -132,8 +163,8 @@ func (h *Handler) createUserHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
-		"Message" : "Successful Added User",
-		"Status" : "201",
+		"Message": "Successful Added User",
+		"Status":  "201",
 	})
 	c.JSON(http.StatusCreated, &user)
 }
@@ -149,7 +180,11 @@ func (h *Handler) deleteUserHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"Message" : "Successfully Deleted User",
-		"Status" : "200",
+		"Message": "Successfully Deleted User",
+		"Status":  "200",
 	})
+}
+
+func (h *Handler) updateUserItems(c *gin.Context) {
+	
 }
