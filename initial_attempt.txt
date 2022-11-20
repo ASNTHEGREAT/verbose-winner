@@ -1,151 +1,205 @@
 package main
 
 import (
-    "net/http"
+	"net/http"
+	"time"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
+func main() {
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 
-//-------------------Tables-------------------//
-//----User----//
-type user struct {
-	ID        int8  `json:"id"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-}
-//---slice of User---//
-var users = []user {
-	{ID: 1, Username: "test@test.com", Password: "testPassword", Firstname: "testfn", Lastname: "testln"},
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Item{})
+
+	handler := newHandler(db)
+
+	r := gin.Default()
+
+	r.GET("/allUsers", handler.listUsersHandler)
+	r.GET("/user/:id",/*TODO*/ handler.listUserByID)
+	r.PUT("/updateitems",/*TODO*/ handler.updateUserItems)
+	r.GET("/login", handler.loginUsersHandler)
+	r.POST("/register", handler.createUserHandler)
+	r.DELETE("/del/:id", handler.deleteUserHandler)
+
+	r.Run()
 }
 
-//-----Food Item------//
-type foodItem struct {
+type Handler struct {
+	db *gorm.DB
+}
+
+func newHandler(db *gorm.DB) *Handler {
+	return &Handler{db}
+}
+
+type User struct {
+	ID        uint    `json:"id"`
+	Name      string  `json:"name"`
+	Email     *string `json:"email"`
+	Password  string  `json:"password"`
+	Age       uint8   `json:"age"`
+	Item      Item
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Item struct {
 	ID    int     `json:"id"`
 	Name  string  `json:"name"`
 	Price float32 `json:"price"`
 }
-//----Slice of Food Items----//
-var foodItems = []foodItem {
-	{ID: 1, Name: "Test Food Item", Price: 69.420},
-}
 
+/*func (h *Handler) listUserItems(tx *gin.Context) {
+	var items []Item
 
-
-//-------------checker functions---------------//
-//-----authenticator----//
-func Contains(sl []user, name user) bool {
-	for _, value := range sl {
-	   if value == name {
-		  return true
-	   }
-	}
-	return false
-}
-//-------id checker-----//
-func Contains_id() bool {
-	// if val, ok := users.ID; ok {
-	 	return true
-	// }
-}
-
-
-
-//-------------API functions-------------//
-//-----login Response-------//
-func getLoginResponse(c *gin.Context) {
-	var newUser user
-
-	if err := c.BindJSON(&newUser); err != nil {
-		return
-	}
-	is_present := Contains(users, newUser)
-	if is_present {
-		c.IndentedJSON(http.StatusOK, gin.H{
-			"Request" : "Success",
-			"Status" : "200",
-		}, nil)
-	}
-	
-}
-
-func getAllUsers(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, users, nil)
-}
-//-----Add Users-------//
-func postUsers(c *gin.Context) {
-	var newUser user
-
-	// Call BindJSON to bind the received JSON to
-	// newUser.
-	if err := c.BindJSON(&newUser); err != nil {
-			return
-	}
-
-	// Add the new user to the slice.
-	users = append(users, newUser)
-	c.IndentedJSON(http.StatusCreated, newUser, nil)
-}
-//-------Get Items----------//
-func getFoodItems(c *gin.Context) {
-	id := c.Param("id")
-	for i,v := range newItems {
-		if v == id {
-        fmt.Println("The slice contains", id, "at index", i)
-        break
-		}
-	}
-	//c.String(http.StatusOK, message)
-}
-//-------Post Items--------//
-func getPostItems(c *gin.Context) {
-	id := c.Param("id")
-	var newItem foodItem
-	var newItems []foodItem 
-	copyNewItems := copy(newItems, foodItems)
-	fmt.Println("New Table created for user ID: and %v elements added.", ,copyNewItems)
-	if err := c.BindJSON(&newItem); err != nil {
+	if result := h.db.Find(&items); result.Error != nil {
+		tx.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
 		return
 	}
 
-	foodItems = append(newItems, newItem)
-	c.IndentedJSON(http.StatusCreated, newItem, nil)
+	tx.JSON(http.StatusOK, &items)
 }
 
+func (h *Handler) createUserItems(tx *gin.Context) {
+	var item Item
 
-func main() {
-    router := gin.Default()
-    router.GET("/", func(c *gin.Context) {
-        c.JSON(200, gin.H{
-            "message": "Hello World!",
-        })
-    })
-	//TODO: remove getAllUsers in the end
-	user := router.Group("/users")
-	{
-		user.GET("/login", getLoginResponse)
-		user.POST("/register", postUsers)
-		user.GET("/users", getAllUsers)
+	if err := tx.ShouldBindJSON(&item); err != nil {
+		tx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
-	item := router.Group("/users/:id/*action")
-	{
-		item.GET("/users/:id/", getFoodItems)
-		func(c *gin.Context) {
-			id := c.Param("id")
-			action := c.Param("action")
-			message := name + " is " + action
-			c.String(http.StatusOK, message)
-		}
+	if result := h.db.Create(&item); result.Error != nil {
+		tx.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
 	}
-
-    router.Run() // listen and serve on 0.0.0.0:8080
+	tx.JSON(http.StatusCreated, gin.H{
+		"Message": "Successful Added Item",
+		"Status":  "201",
+	})
+	tx.JSON(http.StatusCreated, &item)
 }
 
-/*TODO: 
-1. Create a struct of items with food name and price and slice. (Done)
-2. Figure out how to put integer in url for accessing items table of all users. 
-3. Figure out how to check if ID in url/json exists in the map of items against the user of id, use GORM Library.
-4. Figure out a way to append the slice of items for a user against their id. */
+func (h *Handler) deleteUserItems(c *gin.Context) {
+	id := c.Param("id")
+
+	if result := h.db.Delete(&Item{}, id); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"Message": "Successfully Deleted User",
+		"Status":  "200",
+	})
+}*/
+
+func (h *Handler) listUsersHandler(c *gin.Context) {
+	var users []User
+
+	if result := h.db.Find(&users); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, &users)
+}
+
+func (h *Handler) loginUsersHandler(c *gin.Context) {
+	var user User
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if result := h.db.First(&user); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"Message": "User Existence Confirmed",
+		"Status":  "200",
+	})
+	c.JSON(http.StatusCreated, &user)
+}
+
+func (h *Handler) createUserHandler(c *gin.Context) {
+	var user User
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if result := h.db.Create(&user); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{
+		"Message": "Successful Added User",
+		"Status":  "201",
+	})
+	c.JSON(http.StatusCreated, &user)
+}
+
+func (h *Handler) deleteUserHandler(c *gin.Context) {
+	id := c.Param("id")
+
+	if result := h.db.Delete(&User{}, id); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"Message": "Successfully Deleted User",
+		"Status":  "200",
+	})
+}
+
+func (h *Handler) updateUserItems(c *gin.Context) {
+	var user User
+	var item Item
+
+	if err := c.ShouldBindJSON(&item); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+}

@@ -24,8 +24,8 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/allUsers", handler.listUsersHandler)
-	r.GET("/user/:id",/*TODO*/ handler.listUserByID)
-	r.GET("/updateitems",/*TODO*/ handler.updateUserItems)
+	//r.GET("/user/:id",/*TODO*/ handler.listUserByID)
+	r.PUT("/updateitems",/*TODO*/ handler.updateUserItems)
 	r.GET("/login", handler.loginUsersHandler)
 	r.POST("/register", handler.createUserHandler)
 	r.DELETE("/del/:id", handler.deleteUserHandler)
@@ -47,7 +47,7 @@ type User struct {
 	Email     *string `json:"email"`
 	Password  string  `json:"password"`
 	Age       uint8   `json:"age"`
-	Item      Item
+	Item      Item	  `gorm:"foreignKey:Item"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -186,5 +186,19 @@ func (h *Handler) deleteUserHandler(c *gin.Context) {
 }
 
 func (h *Handler) updateUserItems(c *gin.Context) {
-	
+	var user User
+
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if result := h.db.Updates(user); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": result.Error.Error(),
+		})
+		return
+	}
 }
